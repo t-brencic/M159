@@ -1,99 +1,64 @@
-# M159 - Projekt-Setup-Sheet (Ausgefüllt)
+# 🧩 Modul 159 – Active Directory & Cloud Setup
 
-## 1. Übersicht Umgebung
-
-Diese Umgebung umfasst:
-
-- **1x Windows Server (DC)** auf AWS EC2  
-- **1x Windows Server (Client)** auf AWS EC2  
-- **1x Windows Server (Admin Center)** auf AWS EC2  
-- **AWS Managed AD** mit Trust  
-- **Entra Connect / Entra ID Integration**  
+## 👤 Name: Tomas Brencic  
 
 ---
 
-## 2. Allgemeine Angaben
+# 🧠 Aufgabe 1 – Planung, AD- & Cloud-Setup
 
-| Feld                                | Wert |
-| ----------------------------------- | ---- |
-| Vorname                             | Tomas |
-| Nachname                            | Brencic |
-| Klasse                              | (bitte selbst eintragen) |
-| Dokumentation (GIT-Repository-Link) | (bitte nachtragen) |
+## 🧠 Übersicht der Umgebung
+Die erstellte Umgebung besteht aus zwei Windows Server 2022 Instanzen auf AWS EC2:
 
----
+| Komponente | Rolle | Hostname | IP-Adresse | Subnetz | Sichtbarkeit |
+|-------------|--------|-----------|-------------|-----------|----------------|
+| **DC01** | Domain Controller (Active Directory) | `dc01.corp.local` | `10.0.12.229` | `M159-subnet-private1-us-east-1a` | Intern |
+| **CLIENT01** | Windows Client (Server Core Variante) | `client01.corp.local` | `10.0.12.230` | `M159-subnet-public1-us-east-1a` | Öffentlich (RDP) |
 
-## 3. Ressourcen
-
-| Feld                                                         | Wert                  |
-| ------------------------------------------------------------ | --------------------- |
-| Active Directory Second-Level-Domäne                         | corp.brencic.local |
-| Geplante öffentliche Domain (UPN)                            | brencic-cloud.v6.rocks |
-| Azure Education Account                                       | (bitte nachtragen) |
-| Azure Education Account Passwort                             | Azure123! |
+🟢 **Ziel:** Der Client tritt der AD-Domain `corp.local` bei und kann mit dem Domain Controller kommunizieren.
 
 ---
 
-## 4. AWS VPC Setup
+## ☁️ AWS-Setup
 
-| Komponente                      | VPC-ID                | CIDR        | Name |
-| ------------------------------- | --------------------- | ----------- | ---- |
-| VPC                             | vpc-xxxxxx            | 10.0.0.0/16 | M159 |
-| M159-subnet-private1-us-east-1a | - | 10.0.128.0/20 | |
-| M159-subnet-private2-us-east-1b | - | 10.0.144.0/20 | |
-| M159-subnet-public1-us-east-1a  | - | 10.0.0.0/20 | |
-| M159-subnet-public2-us-east-1b  | - | 10.0.16.0/20 | |
+### 1️⃣ VPC erstellen
+- **CIDR:** `10.0.0.0/16`  
+- **Subnets:**  
+  - `10.0.12.0/20` (Private)  
+  - `10.0.128.0/20` (Public)
 
----
+### 2️⃣ Security Groups
 
-## 5. AWS Sicherheitsgruppen
+#### 🧱 DC Security Group
+| Port | Protokoll | Beschreibung |
+|------|------------|--------------|
+| 3389 | TCP | RDP Remote Access |
+| 389 | TCP/UDP | LDAP |
+| 445 | TCP | SMB |
+| 88 | TCP/UDP | Kerberos |
+| 53 | TCP/UDP | DNS |
+| 135, 49152–65535 | TCP | RPC |
+| ICMP | – | Ping |
 
-**Domain Controller:** RDP, LDAP, LDAPS, Kerberos, SMB, DNS, RPC, ICMP etc. offen im VPC.  
-**Client:** Nur RDP + benötigte AD-Ports.  
-
----
-
-## 6. Active Directory Umgebung
-
-| Feld                                  | Wert                  |
-| ------------------------------------- | --------------------- |
-| Active Directory Third-Level-Domäne-1 | corp.brencic.local     |
-| Öffentlicher UPN-Suffix              | brencic-cloud.v6.rocks |
-| Domänenadministrator                  | Administrator         |
-| Kennwort Domänenadministrator         | Admin123! |
-| Kennwort-Demote                       | Admin123! |
-
----
-
-## 7. EC2-Instanzen
-
-| Komponente | Hostname | Private IP | Passwort |
-|------------|----------|------------|----------|
-| Domain Controller | dc01.corp.brencic.local | 10.0.129.10 | Admin123! |
-| Client Server | client01.corp.brencic.local | 10.0.129.20 | Admin123! |
-| Admin Center  | admcenter.corp.brencic.local | 10.0.129.30 | Admin123! |
+#### 🧱 Client Security Group
+| Port | Protokoll | Beschreibung |
+|------|------------|--------------|
+| 3389 | TCP | RDP |
+| 88 | TCP | Kerberos |
+| 445 | TCP | SMB |
+| 53 | TCP/UDP | DNS |
+| 135, 49152–65535 | TCP | RPC |
+| ICMP | – | Ping |
 
 ---
 
-## 8. Abteilungen & Benutzer
+## 💻 Windows-Grundkonfiguration
 
-| Abteilung | Benutzername     | Vorname  | Nachname | Kennwort | Bereiche |
-| --------- | ---------------- | -------- | -------- | -------- | -------- |
-| Sekretariat | sek.s.mueller | Sandra | Müller | User123! | intern |
-| Buchhaltung | acc.l.meier | Lukas | Meier | User123! | intern |
-| GL | gl.a.schneider | Andrea | Schneider | User123! | intern |
-| Promoter | promo.t.brunner | Timo | Brunner | User123! | extern |
+### 1️⃣ Hostname setzen
+```powershell
+Rename-Computer -NewName "DC01" -Restart
+Rename-Computer -NewName "CLIENT01" -Restart
 
----
-
-## 9. Trust / Azure / Entra
-
-| Name | Wert |
-|------|------|
-| Trust Passwort | Trust123! |
-| Entra Admin | azureadmin@brencic-cloud.v6.rocks |
-| Entra Admin Passwort | Azure123! |
-
----
-
-FERTIG. Dieses Sheet erfüllt **Stufe 3** der LB2-Planung.
+### 2️⃣ Netzwerkadapter konfigurieren
+  -  IPv6 deaktivieren
+  -  Statische IPv4-Adresse vergeben
+  -  DNS-Server beim Client → DC01 (10.0.12.229)
